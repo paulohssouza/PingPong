@@ -47,9 +47,13 @@
         axisY: 0,
         leftPaddleWidth: dividingLine.dividingLineWidth,
         leftPaddleHeight: 200,
+        leftPaddleMove: function () {
+          this.axisY = mouse.axisY - this.leftPaddleHeight / 2;
+        },
         leftPaddleDraw: function () {
           canvasCtx.fillStyle = "#ffffff";
           canvasCtx.fillRect(this.axisX, this.axisY, this.leftPaddleWidth, 200);
+          this.leftPaddleMove();
         },
       };
 
@@ -58,6 +62,22 @@
         axisY: 0,
         rightPaddleWidth: dividingLine.dividingLineWidth,
         rightPaddleHeight: 200,
+        speed: 3,
+        rightPaddleMove: function () {
+          if (
+            this.axisY + this.rightPaddleHeight / 2 <
+            ball.axisY + ball.radius
+          ) {
+            this.axisY += this.speed;
+          } else {
+            this.axisY -= this.speed;
+          }
+        },
+        rightPaddleSpeedUp: function () {
+          if (this.speed < 10) {
+            this.speed += 1;
+          }
+        },
         rightPaddleDraw: function () {
           canvasCtx.fillStyle = "#ffffff";
           canvasCtx.fillRect(
@@ -66,12 +86,19 @@
             this.rightPaddleWidth,
             200
           );
+          this.rightPaddleMove();
         },
       };
 
       const scoreboard = {
         human: 0,
         computer: 0,
+        scoreboardIncreaseHuman: function () {
+          this.human += 1;
+        },
+        scoreboardIncreaseComputer: function () {
+          this.computer += 1;
+        },
         scoreboardDraw: function () {
           canvasCtx.font = "bold 72px Arial";
           canvasCtx.textAlign = "center";
@@ -87,9 +114,73 @@
       };
 
       const ball = {
-        axisX: 300,
-        axisY: 200,
+        axisX: 0,
+        axisY: 0,
         radius: 20,
+        speed: 3,
+        directionAxisX: 1,
+        directionAxisY: 1,
+        ballCalculatePosition: function () {
+          if (this.axisX > field.fieldWidth + this.radius) {
+            scoreboard.scoreboardIncreaseHuman();
+            this.ballPointUp();
+          }
+          if (
+            this.axisX + this.radius + rightPaddle.rightPaddleWidth >
+            field.fieldWidth
+          ) {
+            if (
+              this.axisY + this.radius > rightPaddle.axisY &&
+              this.axisY - this.radius <
+                rightPaddle.axisY + rightPaddle.rightPaddleHeight
+            ) {
+              this.ballReverseAxisX();
+            }
+          }
+
+          if (this.axisX < 0 - this.radius) {
+            scoreboard.scoreboardIncreaseComputer();
+            this.ballPointUp();
+          }
+
+          if (this.axisX < 0 + this.radius + leftPaddle.leftPaddleWidth) {
+            if (
+              this.axisY > leftPaddle.axisY &&
+              this.axisY < leftPaddle.axisY + leftPaddle.leftPaddleHeight
+            ) {
+              this.ballReverseAxisX();
+            }
+          }
+
+          if (
+            (this.axisY < 0 + this.radius && this.directionAxisY < 0) ||
+            (this.axisY > field.fieldHeight - this.radius &&
+              this.directionAxisY > 0)
+          ) {
+            this.ballReverseAxisY();
+          }
+        },
+        ballSpeedUp: function () {
+          if (this.speed < 15) {
+            this.speed += 2;
+          }
+        },
+        ballPointUp: function () {
+          this.axisX = field.fieldWidth / 2;
+          this.axisY = field.fieldHeight / 2;
+          this.ballSpeedUp();
+          rightPaddle.rightPaddleSpeedUp();
+        },
+        ballReverseAxisX: function () {
+          this.directionAxisX *= -1;
+        },
+        ballReverseAxisY: function () {
+          this.directionAxisY *= -1;
+        },
+        ballMove: function () {
+          this.axisX += this.directionAxisX * this.speed;
+          this.axisY += this.directionAxisY * this.speed;
+        },
         ballDraw: function () {
           canvasCtx.fillStyle = "#ffffff";
           canvasCtx.beginPath();
@@ -102,7 +193,13 @@
             false
           );
           canvasCtx.fill();
+          this.ballCalculatePosition();
+          this.ballMove();
         },
+      };
+
+      const mouse = {
+        axisY: 0,
       };
 
       function setup() {
@@ -119,8 +216,30 @@
         ball.ballDraw();
       }
 
+      window.animateFrame = (function () {
+        return (
+          window.requestAnimationFrame ||
+          window.webkitRequestAnimationFrame ||
+          window.mozRequestAnimationFrame ||
+          window.oRequestAnimationFrame ||
+          window.msRequestAnimationFrame ||
+          function (callback) {
+            return window.setTimeout(callback, 1000 / 60);
+          }
+        );
+      })();
+
+      function main() {
+        animateFrame(main);
+        draw();
+      }
+
       setup();
-      draw();
+      main();
+
+      canvasEl.addEventListener("mousemove", function (e) {
+        mouse.axisY = e.pageY;
+      });
     </script>
   </body>
 </html>
